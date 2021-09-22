@@ -9,7 +9,7 @@ import io.kaitai.struct.format._
 import io.kaitai.struct.languages.components._
 import io.kaitai.struct.translators.{CSharpTranslator, TypeDetector}
 
-class CSharpCompiler(typeProvider: ClassTypeProvider, config: RuntimeConfig)
+class KrndCSharpCompiler(typeProvider: ClassTypeProvider, config: RuntimeConfig)
   extends LanguageCompiler(typeProvider, config)
     with UpperCamelCaseClasses
     with ObjectOrientedLanguage
@@ -20,7 +20,7 @@ class CSharpCompiler(typeProvider: ClassTypeProvider, config: RuntimeConfig)
     with FixedContentsUsingArrayByteLiteral
     with SwitchIfOps
     with NoNeedForFullClassPath {
-  import CSharpCompiler._
+  import KrndCSharpCompiler._
 
   val translator = new CSharpTranslator(typeProvider, importList)
 
@@ -596,7 +596,7 @@ class CSharpCompiler(typeProvider: ClassTypeProvider, config: RuntimeConfig)
 
   override def paramName(id: Identifier): String = s"p_${idToStr(id)}"
 
-  override def ksErrorName(err: KSError): String = CSharpCompiler.ksErrorName(err)
+  override def ksErrorName(err: KSError): String = KrndCSharpCompiler.ksErrorName(err)
 
   override def attrValidateExpr(
     attrId: Identifier,
@@ -615,14 +615,14 @@ class CSharpCompiler(typeProvider: ClassTypeProvider, config: RuntimeConfig)
   }
 }
 
-object CSharpCompiler extends LanguageCompilerStatic
+object KrndCSharpCompiler extends LanguageCompilerStatic
   with StreamStructNames
   with UpperCamelCaseClasses
   with ExceptionNames {
   override def getCompiler(
     tp: ClassTypeProvider,
     config: RuntimeConfig
-  ): LanguageCompiler = new CSharpCompiler(tp, config)
+  ): LanguageCompiler = new KrndCSharpCompiler(tp, config)
 
   /**
     * Determine .NET data type corresponding to a KS data type.
