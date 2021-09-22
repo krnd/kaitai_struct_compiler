@@ -109,6 +109,10 @@ object JavaMain {
         c.copy(runtime = c.runtime.copy(dotNetNamespace = x))
       } text(".NET Namespace (.NET only, default: Kaitai)")
 
+      opt[String]("dotnet-baseclass") valueName("<baseclass>") action { (x, c) =>
+        c.copy(runtime = c.runtime.copy(dotNetBaseClass = x))
+      } text(".NET BaseClass (.NET only, default: KaitaiStruct)")
+
       opt[String]("php-namespace") valueName("<namespace>") action { (x, c) =>
         c.copy(runtime = c.runtime.copy(phpNamespace = x))
       } text("PHP Namespace (PHP only, default: root package)")

@@ -96,6 +96,7 @@ case class RuntimeConfig(
   goPackage: String = "",
   java: JavaRuntimeConfig = JavaRuntimeConfig(),
   dotNetNamespace: String = "Kaitai",
+  dotNetBaseClass: String = "KaitaiStruct",
   phpNamespace: String = "",
   pythonPackage: String = "",
   nimModule: String = "kaitai_struct_nim_runtime",
