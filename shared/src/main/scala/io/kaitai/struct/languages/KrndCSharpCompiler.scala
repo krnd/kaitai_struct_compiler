@@ -7,7 +7,7 @@ import io.kaitai.struct.exprlang.Ast
 import io.kaitai.struct.exprlang.Ast.expr
 import io.kaitai.struct.format._
 import io.kaitai.struct.languages.components._
-import io.kaitai.struct.translators.{CSharpTranslator, TypeDetector}
+import io.kaitai.struct.translators.{KrndCSharpTranslator, TypeDetector}
 
 class KrndCSharpCompiler(typeProvider: ClassTypeProvider, config: RuntimeConfig)
   extends LanguageCompiler(typeProvider, config)
@@ -22,7 +22,7 @@ class KrndCSharpCompiler(typeProvider: ClassTypeProvider, config: RuntimeConfig)
     with NoNeedForFullClassPath {
   import KrndCSharpCompiler._
 
-  val translator = new CSharpTranslator(typeProvider, importList)
+  val translator = new KrndCSharpTranslator(typeProvider, importList)
 
   override def indent: String = "    "
   override def outFileName(topClassName: String): String = s"${type2class(topClassName)}.cs"
@@ -156,11 +156,17 @@ class KrndCSharpCompiler(typeProvider: ClassTypeProvider, config: RuntimeConfig)
   override def readFooter(): Unit = fileFooter("")
 
   override def attributeDeclaration(attrName: Identifier, attrType: DataType, isNullable: Boolean): Unit = {
-    out.puts(s"private ${kaitaiType2NativeTypeNullable(attrType, isNullable)} ${privateMemberName(attrName)};")
+    // TODO move to command line
+    if (!attrName.humanReadable.startsWith("skip_")) {
+      out.puts(s"private ${kaitaiType2NativeTypeNullable(attrType, isNullable)} ${privateMemberName(attrName)};")
+    }
   }
 
   override def attributeReader(attrName: Identifier, attrType: DataType, isNullable: Boolean): Unit = {
-    out.puts(s"public ${kaitaiType2NativeTypeNullable(attrType, isNullable)} ${publicMemberName(attrName)} { get { return ${privateMemberName(attrName)}; } }")
+    // TODO move to command line
+    if (!attrName.humanReadable.startsWith("skip_") && !attrName.humanReadable.startsWith("x_")) {
+      out.puts(s"public ${kaitaiType2NativeTypeNullable(attrType, isNullable, true)} ${publicMemberName(attrName)} { get { return (${kaitaiType2NativeTypeNullable(attrType, isNullable, true)})${privateMemberName(attrName)}; } }")
+    }
   }
 
   override def universalDoc(doc: DocSpec): Unit = {
@@ -359,8 +365,14 @@ class KrndCSharpCompiler(typeProvider: ClassTypeProvider, config: RuntimeConfig)
     out.puts("}")
   }
 
-  override def handleAssignmentSimple(id: Identifier, expr: String): Unit =
-    out.puts(s"${privateMemberName(id)} = $expr;")
+  override def handleAssignmentSimple(id: Identifier, expr: String): Unit = {
+    var lhs = "_"
+    // TODO move to command line
+    if (!id.humanReadable.startsWith("skip_")) {
+      lhs = privateMemberName(id)
+    }
+    out.puts(s"$lhs = $expr;")
+  }
 
   override def handleAssignmentTempVar(dataType: DataType, id: String, expr: String): Unit =
     out.puts(s"${kaitaiType2NativeType(dataType)} $id = $expr;")
@@ -540,7 +552,7 @@ class KrndCSharpCompiler(typeProvider: ClassTypeProvider, config: RuntimeConfig)
   }
 
   override def instanceReturn(instName: InstanceIdentifier, attrType: DataType): Unit = {
-    out.puts(s"return ${privateMemberName(instName)};")
+    out.puts(s"return (${kaitaiType2NativeType(attrType, true)})${privateMemberName(instName)};")
   }
 
   override def instanceCalculate(instName: Identifier, dataType: DataType, value: expr): Unit =
@@ -630,22 +642,22 @@ object KrndCSharpCompiler extends LanguageCompilerStatic
     * @param attrType KS data type
     * @return .NET data type
     */
-  def kaitaiType2NativeType(attrType: DataType): String = {
+  def kaitaiType2NativeType(attrType: DataType, simplify: Boolean = false): String = {
     attrType match {
-      case Int1Type(false) => "byte"
-      case IntMultiType(false, Width2, _) => "ushort"
-      case IntMultiType(false, Width4, _) => "uint"
-      case IntMultiType(false, Width8, _) => "ulong"
+      case Int1Type(false) => if (simplify) "int" else "byte"
+      case IntMultiType(false, Width2, _) => if (simplify) "int" else "ushort"
+      case IntMultiType(false, Width4, _) => if (simplify) /*throw new RuntimeException("uint32 not supported")*/"uint" else "uint"
+      case IntMultiType(false, Width8, _) => if (simplify) throw new RuntimeException("uint64 not supported") else "ulong"
 
-      case Int1Type(true) => "sbyte"
-      case IntMultiType(true, Width2, _) => "short"
+      case Int1Type(true) => if (simplify) "int" else "sbyte"
+      case IntMultiType(true, Width2, _) => if (simplify) "int" else "short"
       case IntMultiType(true, Width4, _) => "int"
-      case IntMultiType(true, Width8, _) => "long"
+      case IntMultiType(true, Width8, _) => if (simplify) throw new RuntimeException("int64 not supported") else "long"
 
-      case FloatMultiType(Width4, _) => "float"
+      case FloatMultiType(Width4, _) => if (simplify) "double" else "float"
       case FloatMultiType(Width8, _) => "double"
 
-      case BitsType(_, _) => "ulong"
+      case BitsType(_, _) => if (simplify) "int" else "ulong"
 
       case CalcIntType => "int"
       case CalcFloatType => "double"
@@ -667,8 +679,8 @@ object KrndCSharpCompiler extends LanguageCompilerStatic
     }
   }
 
-  def kaitaiType2NativeTypeNullable(t: DataType, isNullable: Boolean): String = {
-    val r = kaitaiType2NativeType(t)
+  def kaitaiType2NativeTypeNullable(t: DataType, isNullable: Boolean, simplify: Boolean = false): String = {
+    val r = kaitaiType2NativeType(t, simplify)
     if (isNullable) {
       t match {
         case _: NumericType | _: BooleanType => s"$r?"
