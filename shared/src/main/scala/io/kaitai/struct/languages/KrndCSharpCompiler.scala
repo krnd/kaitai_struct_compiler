@@ -35,6 +35,7 @@ class KrndCSharpCompiler(typeProvider: ClassTypeProvider, config: RuntimeConfig)
     topClassNameX = topClassName
 
     outHeader.puts(s"// $headerComment")
+    outHeader.puts(s"#pragma warning disable")
     outHeader.puts
 
     var ns = "Kaitai"
