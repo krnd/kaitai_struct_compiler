@@ -111,7 +111,19 @@ object JavaMain {
 
       opt[String]("dotnet-baseclass") valueName("<baseclass>") action { (x, c) =>
         c.copy(runtime = c.runtime.copy(dotNetBaseClass = x))
-      } text(".NET BaseClass (.NET only, default: KaitaiStruct)")
+      } text(".NET top-level base class (.NET/krnd only, default: KaitaiStruct)")
+
+      opt[String]("dotnet-common-baseclass") valueName("<common-baseclass>") action { (x, c) =>
+        c.copy(runtime = c.runtime.copy(dotNetCommonBaseClass = x))
+      } text(".NET common base class (.NET/krnd only, default: KaitaiStruct)")
+
+      opt[String]("dotnet-skip-prefix") valueName("<skip-prefix>") action { (x, c) =>
+        c.copy(runtime = c.runtime.copy(dotNetSkipPrefix = x))
+      } text("Skip attribute name prefix (.NET/krnd only, default: skip_)")
+
+      opt[String]("dotnet-internal-prefix") valueName("<internal-prefix>") action { (x, c) =>
+        c.copy(runtime = c.runtime.copy(dotNetInternalPrefix = x))
+      } text("Internal only attribute name prefix (.NET/krnd only, default: x_)")
 
       opt[String]("php-namespace") valueName("<namespace>") action { (x, c) =>
         c.copy(runtime = c.runtime.copy(phpNamespace = x))

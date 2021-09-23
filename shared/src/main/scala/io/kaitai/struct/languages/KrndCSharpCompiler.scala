@@ -23,6 +23,7 @@ class KrndCSharpCompiler(typeProvider: ClassTypeProvider, config: RuntimeConfig)
   import KrndCSharpCompiler._
 
   val translator = new KrndCSharpTranslator(typeProvider, importList)
+  var topClassNameX = ""
 
   override def indent: String = "    "
   override def outFileName(topClassName: String): String = s"${type2class(topClassName)}.cs"
@@ -31,6 +32,8 @@ class KrndCSharpCompiler(typeProvider: ClassTypeProvider, config: RuntimeConfig)
     importList.toList.map((x) => s"using $x;").mkString("", "\n", "\n")
 
   override def fileHeader(topClassName: String): Unit = {
+    topClassNameX = topClassName
+
     outHeader.puts(s"// $headerComment")
     outHeader.puts
 
@@ -54,8 +57,11 @@ class KrndCSharpCompiler(typeProvider: ClassTypeProvider, config: RuntimeConfig)
 
   override def classHeader(name: String): Unit = {
     var kstructBaseClass = kstructName
-    if (!config.dotNetBaseClass.isEmpty)
+    if (name == topClassNameX && !config.dotNetBaseClass.isEmpty) {
       kstructBaseClass = config.dotNetBaseClass
+    } else if (name != topClassNameX && !config.dotNetCommonBaseClass.isEmpty) {
+      kstructBaseClass = config.dotNetCommonBaseClass
+    }
 
     out.puts(s"public partial class ${type2class(name)} : $kstructBaseClass")
     out.puts(s"{")
@@ -156,20 +162,19 @@ class KrndCSharpCompiler(typeProvider: ClassTypeProvider, config: RuntimeConfig)
   override def readFooter(): Unit = fileFooter("")
 
   override def attributeDeclaration(attrName: Identifier, attrType: DataType, isNullable: Boolean): Unit = {
-    // TODO move to command line
-    if (!attrName.humanReadable.startsWith("skip_")) {
+    if (config.dotNetSkipPrefix.isEmpty || !attrName.humanReadable.startsWith(config.dotNetSkipPrefix)) {
       out.puts(s"private ${kaitaiType2NativeTypeNullable(attrType, isNullable)} ${privateMemberName(attrName)};")
     }
   }
 
   override def attributeReader(attrName: Identifier, attrType: DataType, isNullable: Boolean): Unit = {
-    // TODO move to command line
-    if (!attrName.humanReadable.startsWith("skip_") && !attrName.humanReadable.startsWith("x_")) {
+    if ((config.dotNetSkipPrefix.isEmpty || !attrName.humanReadable.startsWith(config.dotNetSkipPrefix)) && (config.dotNetInternalPrefix.isEmpty || !attrName.humanReadable.startsWith(config.dotNetInternalPrefix))) {
       out.puts(s"public ${kaitaiType2NativeTypeNullable(attrType, isNullable, true)} ${publicMemberName(attrName)} { get { return (${kaitaiType2NativeTypeNullable(attrType, isNullable, true)})${privateMemberName(attrName)}; } }")
     }
   }
 
   override def universalDoc(doc: DocSpec): Unit = {
+    /* NOTE Skipping documentation generation.
     out.puts
     doc.summary.foreach { summary =>
       out.puts("/// <summary>")
@@ -188,6 +193,7 @@ class KrndCSharpCompiler(typeProvider: ClassTypeProvider, config: RuntimeConfig)
       out.putsLines("/// ", s"Reference: $refStr")
       out.puts("/// </remarks>")
     }
+    */
   }
 
   override def attrParseHybrid(leProc: () => Unit, beProc: () => Unit): Unit = {
@@ -367,8 +373,7 @@ class KrndCSharpCompiler(typeProvider: ClassTypeProvider, config: RuntimeConfig)
 
   override def handleAssignmentSimple(id: Identifier, expr: String): Unit = {
     var lhs = "_"
-    // TODO move to command line
-    if (!id.humanReadable.startsWith("skip_")) {
+    if (config.dotNetSkipPrefix.isEmpty || !id.humanReadable.startsWith(config.dotNetSkipPrefix)) {
       lhs = privateMemberName(id)
     }
     out.puts(s"$lhs = $expr;")
