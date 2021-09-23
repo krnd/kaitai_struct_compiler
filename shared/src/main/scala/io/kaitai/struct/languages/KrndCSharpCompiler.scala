@@ -59,7 +59,7 @@ class KrndCSharpCompiler(typeProvider: ClassTypeProvider, config: RuntimeConfig)
     var kstructBaseClass = kstructName
     if (name == topClassNameX && !config.dotNetBaseClass.isEmpty) {
       kstructBaseClass = config.dotNetBaseClass
-    } else if (name != topClassNameX && !config.dotNetCommonBaseClass.isEmpty) {
+    } else if (!config.dotNetCommonBaseClass.isEmpty) {
       kstructBaseClass = config.dotNetCommonBaseClass
     }
 
