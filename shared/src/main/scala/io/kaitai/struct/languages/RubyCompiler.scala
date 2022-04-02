@@ -362,6 +362,7 @@ class RubyCompiler(typeProvider: ClassTypeProvider, config: RuntimeConfig)
           ""
         } else {
           val parent = t.forcedParent match {
+            case Some(USER_TYPE_NO_PARENT) => "nil"
             case Some(fp) => translator.translate(fp)
             case None => "self"
           }
@@ -429,7 +430,7 @@ class RubyCompiler(typeProvider: ClassTypeProvider, config: RuntimeConfig)
     out.puts(s"$enumConst = {")
     out.inc
     enumColl.foreach { case (id, label) =>
-      out.puts(s"$id => ${enumValue(enumName, label)},")
+      out.puts(s"${translator.doIntLiteral(id)} => ${enumValue(enumName, label)},")
     }
     out.dec
     out.puts("}")

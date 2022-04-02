@@ -104,11 +104,11 @@ class LuaCompiler(typeProvider: ClassTypeProvider, config: RuntimeConfig)
     out.puts("self:_read()")
   override def runReadCalc(): Unit = {
     out.puts
-    out.puts(s"if self._is_le then")
+    out.puts("if self._is_le == true then")
     out.inc
     out.puts("self:_read_le()")
     out.dec
-    out.puts(s"elseif not self._is_le then")
+    out.puts("elseif self._is_le == false then")
     out.inc
     out.puts("self:_read_be()")
     out.dec
@@ -293,7 +293,7 @@ class LuaCompiler(typeProvider: ClassTypeProvider, config: RuntimeConfig)
 
     out.puts(s"${types2class(curClass)}.${type2class(enumName)} = enum.Enum {")
     out.inc
-    enumColl.foreach { case (id, label) => out.puts(s"${label.name} = $id,") }
+    enumColl.foreach { case (id, label) => out.puts(s"${label.name} = ${translator.doIntLiteral(id)},") }
     out.dec
     out.puts("}")
     out.puts
@@ -348,6 +348,7 @@ class LuaCompiler(typeProvider: ClassTypeProvider, config: RuntimeConfig)
         ""
       } else {
         val parent = t.forcedParent match {
+          case Some(USER_TYPE_NO_PARENT) => "nil"
           case Some(fp) => translator.translate(fp)
           case None => "self"
         }
